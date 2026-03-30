@@ -1,44 +1,26 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-# This workflow file requires a free account on Semgrep.dev to
-# manage rules, file ignores, notifications, and more.
-#
-# See https://semgrep.dev/docs
-
-name: Semgrep
-
 on:
+  workflow_dispatch: {}
+  pull_request: {}
   push:
-    branches: [ "manin" ] # 1. Fixed "manin" to "main"
-  pull_request:
-    branches: [ "manin" ] # 1. Fixed "manin" to "main"
-  workflow_dispatch: {}    # 2. Added this so the "Run workflow" button appears
-
-permissions:
-  contents: read
-  security-events: write
-
+    branches:
+    - main
+    - master
+    paths:
+    - .github/workflows/semgrep.yml
+  schedule:
+  # random HH:MM to avoid a load spike on GitHub Actions at 00:00
+  - cron: 0 10 * * *
+name: Semgrep
 jobs:
   semgrep:
-    name: Scan
+    name: semgrep/ci
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+    container:
+      image: semgrep/semgrep
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Semgrep CI Scan
-        # 3. Updated to @v1 for the modern stable version
-        uses: returntocorp/semgrep-action@v1 
-        with:
-          publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-          # 4. REMOVED publishDeployment line. 
-          # This was the cause of your "URL not found" error.
-          generateSarif: "1"
-
-      - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: semgrep.sarif
-        if: always()
+    - uses: actions/checkout@v4
+    - run: semgrep ci
